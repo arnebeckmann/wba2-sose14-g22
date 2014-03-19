@@ -32,15 +32,14 @@ var server = http.createServer(function(request, response){
     });
     
     response.writeHead(200, {"Content-Type": "html"});
-    response.write("<table cellpadding='5' border='1'><tr><th>Name</th><th>Durchmesser in km</th><th>Abstand zur Sonne (in Millionen km)</th></tr>");
+    response.write("<table cellpadding='5' border='1'><tr><th>Name</th><th>Durchmesser in km</th><th>Abstand zur Sonne<br>(in Millionen km)</th></tr>");
 
     for (var i = 0; i < planets.length; i++)
         response.write("<tr><td>" + planets[i] + "</td><td>" + durchmesser[i] + "</td><td>" + distances_Mkm[i] + "</td></tr>");
 
+    response.write("<form action='/Planeten' method='POST' /><tr><td><input name='planet' /></td><td><input name='durchmesser' /></td><td><input name='abstand' /></td><td><input type='submit' value='+' /></td></tr></form>");
     response.write("</table>");
-    response.write("<form action='/Planeten' method='POST' />");
-    response.write("Name: <input name='planet'/><br>Durchmesser: <input name='durchmesser' /><br>Abstand: <input name='abstand' /><br><input type='submit' value='Absenden' />")
-    response.write("</form>")
+
     response.end();
 });
                 
