@@ -1,0 +1,44 @@
+<html>
+<head>
+    <title>Planeten hinzuf&uuml;gen</title>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+</head>
+<body>
+    <h1>Planeten hinzuf&uuml;gen</h1>
+    <table cellpadding="5">
+        <form name="planets" id="planets">
+            <tr><td>Name</td><td><input name="name" /></td></tr>
+            <tr><td>Durchmesser</td><td><input name="diameter" /></td></tr>
+            <tr><td>Abstand zur Sonne</td><td><input name="sun_offset" /></td></tr>
+            <tr><td></td><td><input class="submit" type="Submit" value="Hinzuf&uuml;gen" /></td></tr>
+        </form>
+    </table>
+    
+    <script>
+    $("#planets").submit(function(event){
+        event.preventDefault();
+        //catches required data from the form
+        var data = {
+                    "name": $('input[name="name"]').val(),
+                    "diameter": $('input[name="diameter"]').val(),
+                    "sun_offset": $('input[name="sun_offset"]').val()
+                    };
+        $.ajax({
+            //sends POST message to the resource '/planeten'
+            type: 'POST',
+            url: '/planeten',
+            //creates a JSON object (array is a array of JSON objects so there is no more convertion needed)
+            data: JSON.stringify(data),
+            contentType: 'application/json'
+        //informs the user with a popup message, whether the operation failed or succeeded    
+        }).done(function(){
+            alert(data.name+' wurde hinzugefuegt');
+        }).fail(function(e){
+            alert(data.name+' konnte nicht hinzugefuegt werden');
+        });
+        });
+    </script>
+    <a href="/planeten">Planeten ansehen</a>
+</body>
+
+</html>
