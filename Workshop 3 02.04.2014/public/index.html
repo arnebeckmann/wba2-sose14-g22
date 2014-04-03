@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>Planeten hinzuf&uuml;gen</title>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="/faye/client.js"></script>
+</head>
+<body>
+    <h1>Planeten</h1>
+    <table cellpadding="5" border="1" id="planets_show">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Durchmesser</th>
+            <th>Abstand zur Sonne<br /><small>in Mio. km</small></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Merkur</td>
+            <td>4879</td>
+            <td>58</td>
+        </tr>
+        <tr>
+            <td>Venus</td>
+            <td>12103</td>
+            <td>108</td>
+        </tr>
+    </tbody>    
+    </table>
+    
+    <h1>Planeten hinzuf&uuml;gen</h1>
+    <table cellpadding="5">
+        <form name="planets" id="planets">
+            <tr><td>Name</td><td><input name="name" /></td></tr>
+            <tr><td>Durchmesser</td><td><input name="diameter" /></td></tr>
+            <tr><td>Abstand zur Sonne</td><td><input name="sun_offset" /></td></tr>
+            <tr><td></td><td><input class="submit" type="Submit" value="Hinzuf&uuml;gen" /></td></tr>
+        </form>
+    </table>
+    
+    <script>
+    
+    //function to add new planets to the table without refreshing
+    function addTableRow(planets){
+        var planetsTable = $('#planets_show');
+
+        planetsTable.find('tbody').first().append('<tr><td>'+planets.name+'</td><td>'+planets.diameter+'</td><td>'+planets.sun_offset+'</td></tr>');
+    }
+    
+    //sets up faye client
+    var client = new Faye.Client('/faye');
+    
+    //subscribes topic '/planets' and adds new planets without refreshing the page
+    var subscription = client.subscribe('/planets', function(message){
+        addTableRow(message);
+    });
+    
+    //gets planets from the database by using AJAX
+    $(document).ready(function(){
+        var request = $.ajax({
+            type: 'GET',
+            url: 'http://localhost:3000/planeten',
+            contentType: 'application/json'
+        });
+        
+        request.done(function(planetsjson){
+            planetsjson.forEach(function(planets){
+                addTableRow(planets);
+            });
+        });
+        
+        request.fail(function(err){
+            //Fehlerbehandlung
+        });
+    });
+    
+    $("#planets").submit(function(event){
+        event.preventDefault();
+        //catches required data from the form
+        var data = {
+                    "name": $('input[name="name"]').val(),
+                    "diameter": $('input[name="diameter"]').val(),
+                    "sun_offset": $('input[name="sun_offset"]').val()
+                    };
+        $.ajax({
+            //sends POST message to the resource '/planeten'
+            type: 'POST',
+            url: '/planeten',
+            //creates a JSON object (array is a array of JSON objects so there is no more convertion needed)
+            data: JSON.stringify(data),
+            contentType: 'application/json'
+        //informs the user with a popup message, whether the operation failed or succeeded    
+        }).done(function(){
+            alert(data.name+' wurde hinzugefuegt');
+        }).fail(function(e){
+            alert(data.name+' konnte nicht hinzugefuegt werden');
+        });
+        });
+    </script>
+
+</body>
+
+</html>
