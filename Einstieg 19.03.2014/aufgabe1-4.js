@@ -64,7 +64,6 @@ var server = http.createServer(function(request, response){
     // HTML form, where users can add planets to the arrays
     response.write("<form action='/Planeten' method='POST' /><tr><td><input name='planet' /></td><td><input name='diameter' /></td><td><input name='sun_offset' /></td><td><input type='submit' value='+' /></td></tr></form>");
     response.write("</table>");
-
     response.end();
 });
 
