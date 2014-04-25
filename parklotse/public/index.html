@@ -1,0 +1,76 @@
+<!doctype html>
+    <head>
+        <title>Parklotse Online</title>
+        <meta charset="utf-8" />
+        <style type="text/css">
+            body {
+                background-color: #FFFFFF;
+                width: 100%;
+                margin: 0px;
+                font-family: Arial;
+            }
+            
+            .headline{
+                background-color: #000080;
+                font-family: Arial, sans-serif;
+                font-weight: bolder;
+                color: #FFFFFF;
+                padding: 10px;
+                margin-bottom: 1px;
+                text-transform: uppercase;
+            }
+            p{
+                margin-left: 10px;
+                margin-right: 10px;
+                margin-top: 0px;
+                margin-bottom: 0px;
+            }
+            
+                    
+        </style>
+        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script type="text/javascript" src="/faye/client.js"></script>
+        <script> 
+    		function error() {
+                var data = {
+                    "lat": "51.0296774",
+                    "lon": "7.5744227"
+                };
+                $.ajax({
+                    type: '/POST',
+                    url: '/position',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json'                    
+                });
+                alert("Die Positionsbestimmung ist fehlgeschlagen!");
+    			
+    		}	             
+    		
+    		function success(pos){
+    		    var data = {
+                    "lat": pos.coords.latitude,
+                    "lon": pos.coords.longitude
+                };
+                $.ajax({
+    		      type: 'POST',
+                  url: '/position',
+                  data: JSON.stringify(data),
+                  contentType: 'application/json'                          
+                });
+            }		
+    		
+    		if (navigator.geolocation){
+    			navigator.geolocation.getCurrentPosition(success, error);
+    		}else{
+    			alert("Geoortung wird nicht unterstützt!");
+    		}
+	</script>
+    </head>
+
+    <body>
+         <div class="headline">in der N&auml;he</div>
+         <div class="headline">hohe Verg&uuml;gbarkeit</div>
+         <p>Test</p>
+    </body>
+
+</html>
