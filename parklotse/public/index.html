@@ -3,15 +3,17 @@
         <title>Parklotse Online</title>
         <meta charset="utf-8" />
         <style type="text/css">
+
             body {
                 background-color: #FFFFFF;
                 width: 100%;
+                max-width: 300px;
                 margin: 0px;
                 font-family: Arial;
             }
             
             .headline{
-                background-color: #000080;
+                background-color: #007FBF;
                 font-family: Arial, sans-serif;
                 font-weight: bolder;
                 color: #FFFFFF;
@@ -25,52 +27,158 @@
                 margin-top: 0px;
                 margin-bottom: 0px;
             }
+            table{
+                padding-left: 10px;
+                padding-right: 10px;
+                margin-top: 0px;
+                margin-bottom: 0px;
+                font-size: 10pt;
+            }
+            thead{
+                text-align: left;
+            }
             
                     
         </style>
         <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
         <script type="text/javascript" src="/faye/client.js"></script>
-        <script> 
-    		function error() {
-                var data = {
-                    "lat": "51.0296774",
-                    "lon": "7.5744227"
-                };
-                $.ajax({
-                    type: '/POST',
-                    url: '/position',
-                    data: JSON.stringify(data),
-                    contentType: 'application/json'                    
-                });
-                alert("Die Positionsbestimmung ist fehlgeschlagen!");
-    			
-    		}	             
-    		
-    		function success(pos){
-    		    var data = {
-                    "lat": pos.coords.latitude,
-                    "lon": pos.coords.longitude
-                };
-                $.ajax({
-    		      type: 'POST',
-                  url: '/position',
-                  data: JSON.stringify(data),
-                  contentType: 'application/json'                          
-                });
-            }		
-    		
-    		if (navigator.geolocation){
-    			navigator.geolocation.getCurrentPosition(success, error);
-    		}else{
-    			alert("Geoortung wird nicht unterstützt!");
-    		}
-	</script>
+	<script>
+	
+	    //function calculates distance (in meters) between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2){
+            if (typeof(Number.prototype.toRad) === "undefined") {
+                    Number.prototype.toRad = function() {
+                    return this * Math.PI / 180;
+                    }
+            }
+
+            lat1 = lat1 *1;
+            lon1 = lon1 *1;
+
+            lat2 = lat2 *1;
+            lon2 = lon2 *1;
+
+            temp1 = lat2-lat1;
+            temp2 = lon2-lon1;
+
+
+            var R = 6371; // km
+
+            var dLat = temp1.toRad();
+            var dLon = temp2.toRad();
+
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            var d = R * c;
+
+            //meter
+            final = d * 1000;
+
+            return final;
+        }
+    </script>
     </head>
 
     <body>
-         <div class="headline">in der N&auml;he</div>
+         <div class="headline"><a href="index.html"><img src="inc/logo.png"/></a></div>
+         <div class="headline">in der N&auml;he <br><small>max. 2km Luftlinie</small></div>
+         
+            <table border="0" width="100%" id="parkinglots">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Frei</th>
+                        <th>Distanz</th>
+                        <th>Infos</th>                    
+                    </tr>
+                </thead>
+                <tbody>               
+                </tbody>
+            </table>
+         <div class="headline">Suche</div>
          <div class="headline">hohe Verg&uuml;gbarkeit</div>
-         <p>Test</p>
+         
+         <script>
+            function addTableRow(parkinglots, distance, counter, taken){
+                var parkingslots = counter+taken;
+                var parkingTable = $('#parkinglots');
+                parkingTable.find('tbody').first().append('<tr><td>'+parkinglots.name+'</td><td>'+counter+'/'+parkingslots+'</td><td>'+Math.round(distance,0)+' m</td><td><a href="index.html">Info</a></td></tr>');
+            }
+            
+            $(document).ready(function(){
+                var request = $.ajax({
+                    type: 'GET',
+                    url: '/parkinglots',
+                    contentType: 'application/json'
+                });
+        
+                request.done(function(parkingslotsjson){
+                    parkingslotsjson.forEach(function(parkinglots){
+                        var lat;
+                        var lon;
+                        var counter = 0;
+
+                		function error() {
+                            lat= 51.0296774;
+                            lon = 7.5744227;
+                            
+                            distance = calculateDistance(lat, lon, parkinglots.lat, parkinglots.lon);
+                            
+                            if(distance <= 2000){
+                                addTableRow(parkinglots, distance);
+                            }
+                            alert("Die Positionsbestimmung ist fehlgeschlagen!");
+                        }
+            
+
+               		   function success(pos){                            
+                            lat = pos.coords.latitude;
+                            lon = pos.coords.longitude;
+                            counter = 0;
+                            taken = 0;
+                            
+                            var request2 = $.ajax({
+                            type: 'GET',
+                            url: '/parkingspace',
+                            contentType: 'application/json'
+                            }); 
+                            
+                            request2.done(function(parkingspacejson){
+                                parkingspacejson.forEach(function(parkingspace){
+                                    if(parkingspace.status == "frei" && parkinglots.id == parkingspace.parkplatz_id){
+                                        counter = counter+1 ;
+                                    }
+                                    if(parkingspace.status == "besetzt" && parkinglots.id == parkingspace.parkplatz_id){
+                                        taken = taken+1;
+                                    }
+                                });
+                            
+                            distance = calculateDistance(lat, lon, parkinglots.lat, parkinglots.lon);
+                            //if(distance <= 20000){
+                                addTableRow(parkinglots, distance, counter, taken);
+                            //}      
+                            });   
+                       }
+
+                		if (navigator.geolocation){
+                			navigator.geolocation.getCurrentPosition(success, error);
+                		}else{
+                			alert("Geoortung wird nicht unterstützt!");
+                		}                    
+                        
+                        //alert(parkinglots.coords.latitude);
+                        //addTableRow(parkinglots);
+                    });
+                });
+        
+                request.fail(function(err){
+                    //Fehlerbehandlung
+                });
+            });            
+         </script>
     </body>
 
 </html>
