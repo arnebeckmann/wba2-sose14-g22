@@ -7,9 +7,9 @@
             body {
                 background-color: #FFFFFF;
                 width: 100%;
-                max-width: 300px;
                 margin: 0px;
                 font-family: Arial;
+                font-size: 10pt;
             }
             
             .headline{
@@ -37,6 +37,23 @@
             thead{
                 text-align: left;
             }
+           .more {
+              display: none;
+              border-top: 1px solid #666;
+              border-bottom: 1px solid #666; 
+              padding-top: -20px;
+              padding-bottom: 10px;
+              margin-top: 0px;
+              margin-bottom: 20px;
+              }
+           a.showLink, a.hideLink {
+              text-decoration: none;
+              color: #36f;
+ }
+           a.hideLink {
+}
+           a.showLink:hover, a.hideLink:hover {
+              border-bottom: 1px dotted #36f; }
             
                     
         </style>
@@ -80,32 +97,97 @@
             return final;
         }
     </script>
+    
+    <script language="javascript" type="text/javascript">
+        //allows to show and hide infoboxes
+        function showHide(shID) {
+           if (document.getElementById(shID)) {
+              if (document.getElementById(shID+'-show').style.display != 'none') {
+                 document.getElementById(shID+'-show').style.display = 'none';
+                 document.getElementById(shID).style.display = 'block';
+              }
+              else {
+                 document.getElementById(shID+'-show').style.display = 'inline';
+                 document.getElementById(shID).style.display = 'none';
+              }
+           }
+        }
+    </script>
     </head>
 
     <body>
          <div class="headline"><a href="index.html"><img src="inc/logo.png"/></a></div>
-         <div class="headline">in der N&auml;he <br><small>max. 2km Luftlinie</small></div>
-         
+         <div class="headline">in der N&auml;he <br><small>max. 2km Luftlinie</small></div>          
             <table border="0" width="100%" id="parkinglots">
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>&Ouml;ffnungszeiten</th>
                         <th>Frei</th>
                         <th>Distanz</th>
-                        <th>Infos</th>                    
+                        <th></th>                    
                     </tr>
                 </thead>
                 <tbody>               
                 </tbody>
             </table>
          <div class="headline">Suche</div>
-         <div class="headline">hohe Verg&uuml;gbarkeit</div>
+         <p>Aufgrund der XSS-Policy der GoogleMaps API leider nicht mehr m&ouml;glich</p>
          
          <script>
+            var client = new Faye.Client('/faye');
+            var parkingTable = $('#parkinglots');
+            
+            var timestamp = new Date();
+            var day = timestamp.getDay();
+            var hour = timestamp.getHours();
+            
+            function changeFreePlaces(id, amount, max){
+                parkingTable.find('#counter'+id).replaceWith('<td id="counter'+id+'">'+amount+'/'+max+'</td>');
+            }
+            
+            function checkIfOpen(open){
+
+                var days_from = new Array(open[4], open[0], open[0], open[0], open[0], open[0], open[2]);
+                var days_to = new Array(open[5], open[1], open[1], open[1], open[1], open[1], open[3]);
+                
+                var return_array;
+                
+                if(days_from[day] != days_to[day] && hour >= days_from[day] && hour < days_to[day]){
+                    return_array = new Array("open", days_from, days_to);
+                }else{
+                    return_array = new Array("closed", days_from, days_to);
+                }
+                
+                return return_array;               
+            }
+            
             function addTableRow(parkinglots, distance, counter, taken){
                 var parkingslots = counter+taken;
-                var parkingTable = $('#parkinglots');
-                parkingTable.find('tbody').first().append('<tr><td>'+parkinglots.name+'</td><td>'+counter+'/'+parkingslots+'</td><td>'+Math.round(distance,0)+' m</td><td><a href="index.html">Info</a></td></tr>');
+                var open_hours = parkinglots.open.split(".");
+                var open = checkIfOpen(open_hours);
+                var today_from = (open[1][day]);
+                var today_to = (open[2][day]);
+                var openingtimes_string;
+                
+                var open_mo_fr = new Array(open[1][1], open[2][1]);
+                var open_sa = new Array(open[1][6], open[2][6]);
+                var open_so = new Array(open[1][0], open[2][0]);
+
+                if(open[0] == "open"){
+                    openingtimes_string = today_from+" - "+today_to+" UHR";                    
+                }else{
+                    openingtimes_string = "GESCHLOSSEN";
+                }
+                
+                var info = "<br><hr><p id='content'><b>Info</b><br /></p><table width='100%' cellpadding='5'><tr><td width='30%'>Anschrift</td><td>"+parkinglots.str+"<br />"+parkinglots.zip+" "+parkinglots.city+"</td></tr><tr><td>Parkpreis/Stunde</td><td>"+parkinglots.price_h+",00&euro;</td></tr><tr><td>Parkpreis/Tag</td><td>"+parkinglots.price_day+",00&euro;</td></tr><tr><td>Telefon</td><td>"+parkinglots.contact+"</td></tr><tr><td>weitere Infos</td><td>"+parkinglots.infos+"</td></tr></table>";
+                var openingtable = "<b>&Ouml;ffnungszeiten</b></p><br /><table width='100%' cellpadding='5'><tr><td width='30%'>Montag-Freitag</td><td>"+open_mo_fr[0]+":00 bis "+open_mo_fr[1]+":00 Uhr</td></tr><tr><td>Samstag</td><td>"+open_sa[0]+":00 bis "+open_sa[1]+":00 Uhr</td></tr><tr><td>Sonntag</td><td>"+open_so[0]+":00 bis "+open_so[1]+":00 Uhr</td></tr></table>";
+                var content = "<p id='content'><iframe width='100%' height='300' src='http://maps.google.de/maps/?hl=de&q="+parkinglots.lat+", "+parkinglots.lon+"&t=&z=14&iwloc=A&output=embed' frameborder='0' scrolling='no' marginheight='0' marginwidth='0' />"+openingtable+""+info+"";
+                parkingTable.find('tbody').first().append('<tr><td>'+parkinglots.name+'</td><td>'+openingtimes_string+'</td><td id="counter'+parkinglots.id+'">'+counter+'/'+parkingslots+'</td><td>'+Math.round(distance,0)+' m</td><td><a href="#" id="park'+parkinglots.id+'-show" class="showLink" onclick="showHide(\'park'+parkinglots.id+'\');return false;">INFO</a></td></tr><tr><td colspan="5"><div id="park'+parkinglots.id+'" class="more"><center><a href="#" id="park'+parkinglots.id+'-hide" class="hideLink" onclick="showHide(\'park'+parkinglots.id+'\');return false;">Zuklappen</a></center>'+content+'<center><a href="#" id="park'+parkinglots.id+'-hide" class="hideLink" onclick="showHide(\'park'+parkinglots.id+'\');return false;">Zuklappen</a></center></div></td></tr>');
+                
+                var subscription = client.subscribe('/parkinglots/'+parkinglots.id, function(message){
+                    changeFreePlaces(parkinglots.id, message.amount, parkingslots);
+                });
             }
             
             $(document).ready(function(){
@@ -122,14 +204,14 @@
                         var counter = 0;
 
                 		function error() {
-                            lat= 51.0296774;
-                            lon = 7.5744227;
+                            //lat= 51.0296774;
+                            //lon = 7.5744227;
                             
-                            distance = calculateDistance(lat, lon, parkinglots.lat, parkinglots.lon);
+                            //distance = calculateDistance(lat, lon, parkinglots.lat, parkinglots.lon);
                             
-                            if(distance <= 2000){
-                                addTableRow(parkinglots, distance);
-                            }
+                            //if(distance <= 2000){
+                            //    addTableRow(parkinglots, distance);
+                            //}
                             alert("Die Positionsbestimmung ist fehlgeschlagen!");
                         }
             
@@ -157,9 +239,9 @@
                                 });
                             
                             distance = calculateDistance(lat, lon, parkinglots.lat, parkinglots.lon);
-                            //if(distance <= 20000){
+                            if(distance <= 2000){
                                 addTableRow(parkinglots, distance, counter, taken);
-                            //}      
+                            }      
                             });   
                        }
 
@@ -180,5 +262,5 @@
             });            
          </script>
     </body>
-
+                
 </html>
